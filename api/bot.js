@@ -4,131 +4,174 @@ import { dashboardAnalytics } from "../services/dashboardService.js"
 import { financeInsight, topDetail } from "../services/insightService.js"
 
 import {
-  expenseDetail,
-  expenseDetailMonth,
-  expenseDetailByMonthName,
-  searchExpenseDetailbyDescription
+    expenseDetail,
+    expenseDetailMonth,
+    expenseDetailByMonthName,
+    searchExpenseDetailbyDescription
 } from "../services/expenseService.js"
 
 import { learnCategory } from "../services/categoryService.js"
+import { setBudget, budgetStatus } from "../services/budgetService.js"
 import { sendMessage } from "../utils/telegram.js"
+import { parseAmount } from "../utils/parser.js"
+
 
 export default async function handler(req, res) {
 
-  const update = req.body
+    const update = req.body
 
-  if (!update.message) {
-    return res.status(200).send("ok")
-  }
-
-  const text = update.message.text
-  const chatId = update.message.chat.id
-  console.log("Incoming message:", text)
-  if (!text) {
-    return res.status(200).send("ok")
-  }
-
-  const lower = text.toLowerCase()
-
-  if (lower === "/topdetail") {
-    await topDetail(chatId)
-    return res.status(200).send("ok")
-  }
-
-  if (lower === "/insight") {
-    await financeInsight(chatId)
-    return res.status(200).send("ok")
-  }
-
-  if (lower === "/dashboard") {
-    await dashboardAnalytics(chatId)
-    return res.status(200).send("ok")
-  }
-
-  if (lower.startsWith("/setcategory")) {
-
-    const parts = lower.split(" ")
-    const newCategory = parts[1]
-
-    if (!newCategory) {
-      await sendMessage(chatId, "Gunakan: /setcategory food")
-      return res.status(200).send("ok")
+    if (!update.message) {
+        return res.status(200).send("ok")
     }
 
-    await learnCategory(chatId, newCategory)
-    return res.status(200).send("ok")
-  }
-
-  if (lower.startsWith("/search")) {
-
-    const keyword = lower.split(" ").slice(1).join(" ")
-
-    if (!keyword) {
-      await sendMessage(chatId, "Gunakan: /search ramen")
-      return res.status(200).send("ok")
+    const text = update.message.text
+    const chatId = update.message.chat.id
+    console.log("Incoming message:", text)
+    if (!text) {
+        return res.status(200).send("ok")
     }
 
-    await searchExpenseDetailbyDescription(chatId, keyword)
-    return res.status(200).send("ok")
-  }
+    const lower = text.toLowerCase()
 
-  if (lower.startsWith("/expense")) {
-
-    const parts = lower.split(" ")
-
-    if (parts.length === 1) {
-      await expenseDetail(chatId)
+    if (lower === "/topdetail") {
+        await topDetail(chatId)
+        return res.status(200).send("ok")
     }
 
-    else {
-
-      const arg1 = parts[1]
-      const arg2 = parts[2]
-
-      if (arg1 === "bulan" && arg2 === "ini") {
-        await expenseDetailMonth(chatId)
-      }
-
-      else {
-        const monthName = arg1
-        const year = arg2 || new Date().getFullYear()
-        await expenseDetailByMonthName(chatId, monthName, year)
-      }
+    if (lower === "/insight") {
+        await financeInsight(chatId)
+        return res.status(200).send("ok")
     }
 
-    return res.status(200).send("ok")
-  }
-
-  if (lower.startsWith("/report")) {
-
-    const parts = lower.split(" ")
-
-    if (parts.length === 1) {
-      await generateReport(chatId)
+    if (lower === "/dashboard") {
+        await dashboardAnalytics(chatId)
+        return res.status(200).send("ok")
     }
 
-    else if (parts[1] === "today") {
-      await todayReport(chatId)
+    if (lower.startsWith("/setcategory")) {
+
+        const parts = lower.split(" ")
+        const newCategory = parts[1]
+
+        if (!newCategory) {
+            await sendMessage(chatId, "Gunakan: /setcategory food")
+            return res.status(200).send("ok")
+        }
+
+        await learnCategory(chatId, newCategory)
+        return res.status(200).send("ok")
     }
 
-    else {
-      await monthlyReport(chatId, parts[1])
+    if (lower.startsWith("/search")) {
+
+        const keyword = lower.split(" ").slice(1).join(" ")
+
+        if (!keyword) {
+            await sendMessage(chatId, "Gunakan: /search ramen")
+            return res.status(200).send("ok")
+        }
+
+        await searchExpenseDetailbyDescription(chatId, keyword)
+        return res.status(200).send("ok")
     }
 
-    return res.status(200).send("ok")
-  }
+    if (lower === "/budgetstatus") {
+        await budgetStatus(chatId)
+        return res.status(200).send("ok")
+    }
+    
+    if (lower.startsWith("/budget")) {
 
-  if (lower === "/today") {
-    await todayReport(chatId)
-    return res.status(200).send("ok")
-  }
+        const parts = lower.split(" ")
 
-  if (lower === "/month") {
-    await monthReport(chatId)
-    return res.status(200).send("ok")
-  }
+        const category = parts[1]
+        const amountText = parts[2]
 
-  await handleTransaction(chatId, text)
+        if (!category || !amountText) {
 
-  res.status(200).send("ok")
+            await sendMessage(chatId,
+                `Gunakan format:
+
+/budget food 2000000
+/budget coffee 500k`
+            )
+
+            return res.status(200).send("ok")
+        }
+
+        const amount = parseAmount(amountText)
+
+        if (!amount) {
+
+            await sendMessage(chatId, "Jumlah budget tidak valid")
+            return res.status(200).send("ok")
+
+        }
+
+        await setBudget(chatId, category, amount)
+
+        return res.status(200).send("ok")
+    }
+    
+
+    if (lower.startsWith("/expense")) {
+
+        const parts = lower.split(" ")
+
+        if (parts.length === 1) {
+            await expenseDetail(chatId)
+        }
+
+        else {
+
+            const arg1 = parts[1]
+            const arg2 = parts[2]
+
+            if (arg1 === "bulan" && arg2 === "ini") {
+                await expenseDetailMonth(chatId)
+            }
+
+            else {
+                const monthName = arg1
+                const year = arg2 || new Date().getFullYear()
+                await expenseDetailByMonthName(chatId, monthName, year)
+            }
+        }
+
+        return res.status(200).send("ok")
+    }
+
+    if (lower.startsWith("/report")) {
+
+        const parts = lower.split(" ")
+
+        if (parts.length === 1) {
+            await generateReport(chatId)
+        }
+
+        else if (parts[1] === "today") {
+            await todayReport(chatId)
+        }
+
+        else {
+            await monthlyReport(chatId, parts[1])
+        }
+
+        return res.status(200).send("ok")
+    }
+
+    if (lower === "/today") {
+        await todayReport(chatId)
+        return res.status(200).send("ok")
+    }
+
+    if (lower === "/month") {
+        await monthReport(chatId)
+        return res.status(200).send("ok")
+    }
+
+    await handleTransaction(chatId, text)
+
+    res.status(200).send("ok")
 }
+

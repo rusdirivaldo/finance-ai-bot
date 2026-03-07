@@ -3,6 +3,7 @@ import { parseAmount } from "../utils/parser.js"
 import { detectCategory } from "./categoryService.js"
 import { sendMessage } from "../utils/telegram.js"
 import { rupiah } from "../utils/formatter.js"
+import { checkBudget } from "./budgetService.js"
 
 function detectType(text) {
 
@@ -43,7 +44,7 @@ export async function handleTransaction(chatId, text) {
                 needs_category: needsCategory
             }
         ])
-
+    await checkBudget(chatId,category)
     if (error) {
         console.error(error)
     }
@@ -74,3 +75,4 @@ ${category}
 ${rupiah(amount)}
 `)
 }
+
