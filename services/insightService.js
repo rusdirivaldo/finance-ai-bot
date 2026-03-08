@@ -136,12 +136,25 @@ export async function financeInsight(chatId) {
     recommendation = "✅ Kondisi finansial cukup sehat."
 
   }
+  const scoreData = await calculateFinanceScore(chatId)
+  let scoreText = ""
+  if(scoreData){
+
+  scoreText =
+`💳 Financial Health Score
+
+Score : ${scoreData.score} / 100
+Saving Rate : ${(scoreData.savingRate*100).toFixed(0)}%
+`}
 
   // =================
   // build message
   // =================
 
   const message = `
+  ${scoreText}
+
+
 💡 Finance Insight
 
 Saving Rate : ${savingRate}%
@@ -205,5 +218,45 @@ ${rupiah(t.amount)}
   })
 
   await sendMessage(chatId, text)
+
+}
+
+export async function calculateFinanceScore(chatId){
+
+  const { data } = await supabase
+    .from("transactions")
+    .select("type,amount")
+    .eq("chat_id", chatId)
+
+  if(!data || data.length === 0){
+    return null
+  }
+
+  let income = 0
+  let expense = 0
+
+  data.forEach(t=>{
+    if(t.type === "income") income += t.amount
+    if(t.type === "expense") expense += t.amount
+  })
+
+  if(income === 0) return null
+
+  const savingRate = (income - expense) / income
+
+  let score = 50
+
+  if(savingRate > 0.4) score += 30
+  else if(savingRate > 0.2) score += 20
+  else if(savingRate > 0.1) score += 10
+
+  if(expense < income * 0.7) score += 10
+
+  if(score > 100) score = 100
+
+  return {
+    score,
+    savingRate
+  }
 
 }

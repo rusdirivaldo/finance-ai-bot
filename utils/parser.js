@@ -27,3 +27,20 @@ export function tokenize(text) {
   return text.split(/\s+/)
 
 }
+
+export function parseCommand(text){
+
+  if(!text) return null
+
+  const parts = text.trim().split(/\s+/)
+
+  const command = parts[0].toLowerCase()
+
+  const args = parts.slice(1)
+
+  return {
+    command,
+    args
+  }
+
+}

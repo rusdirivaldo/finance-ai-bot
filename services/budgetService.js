@@ -10,7 +10,7 @@ export async function setBudget(chatId, category, amount) {
     const month = now.getMonth() + 1
     const year = now.getFullYear()
 
-    await supabase
+    const { error } = await supabase
         .from("budgets")
         .upsert({
             chat_id: chatId,
@@ -18,13 +18,22 @@ export async function setBudget(chatId, category, amount) {
             monthly_limit: amount,
             month,
             year
+        }, {
+            onConflict: "chat_id,category,month,year"
         })
-    await sendMessage(chatId,
-        `✅ Budget Set
 
-${category}
-Limit : ${rupiah(amount)}`
-    )
+    if (error) {
+        console.error(error)
+        await sendMessage(chatId, "⚠ Gagal menyimpan budget")
+        return
+    }
+
+    await sendMessage(chatId,
+        `✅ Budget Updated
+
+Category : ${category}
+Limit : ${rupiah(amount)}`)
+
 }
 
 
@@ -81,49 +90,80 @@ ${Math.round(pct * 100)}% used`
 
 }
 
+
 export async function budgetStatus(chatId) {
 
-  const now = new Date()
+    const now = new Date()
 
-  const month = now.getMonth() + 1
-  const year = now.getFullYear()
+    const month = now.getMonth() + 1
+    const year = now.getFullYear()
 
-  const { data: budgets } = await supabase
-    .from("budgets")
-    .select("*")
-    .eq("chat_id", chatId)
-    .eq("month", month)
-    .eq("year", year)
+    const { data: budgets, error } = await supabase
+        .from("budgets")
+        .select("*")
+        .eq("chat_id", chatId)
+        .eq("month", month)
+        .eq("year", year)
 
-  if (!budgets || budgets.length === 0) {
-    await sendMessage(chatId, "Belum ada budget yang dibuat.")
-    return
-  }
+    if (error) {
+        console.error(error)
+        await sendMessage(chatId, "Database error")
+        return
+    }
 
-  let message = "📊 Budget Status\n\n"
+    if (!budgets || budgets.length === 0) {
+        await sendMessage(chatId, "Belum ada budget yang dibuat.")
+        return
+    }
 
-  for (const b of budgets) {
 
-    const { data: tx } = await supabase
-      .from("transactions")
-      .select("amount")
-      .eq("chat_id", chatId)
-      .eq("category", b.category)
-      .eq("type", "expense")
+    const start = new Date(year, month - 1, 1)
+    const end = new Date(year, month, 0)
+    let message = "📊 Budget Status\n\n"
 
-    const total = tx
-      ? tx.reduce((a, c) => a + c.amount, 0)
-      : 0
+    for (const b of budgets) {
 
-    const pct = Math.round((total / b.monthly_limit) * 100)
+        const { data: tx } = await supabase
+            .from("transactions")
+            .select("amount")
+            .eq("chat_id", chatId)
+            .eq("category", b.category)
+            .eq("type", "expense")
+            .gte("date", start.toISOString())
+            .lte("date", end.toISOString())
 
-    message += `${b.category}
+        const total = tx
+            ? tx.reduce((a, c) => a + c.amount, 0)
+            : 0
+
+        const pctRaw = Math.round((total / b.monthly_limit) * 100)
+        const pct = Math.min(pctRaw, 100)
+
+        const bar = progressBar(pct)
+
+        message += `${b.category}
+${bar} ${pctRaw}%
 ${rupiah(total)} / ${rupiah(b.monthly_limit)}
-${pct}%
-
 `
-  }
 
-  await sendMessage(chatId, message)
+        if (pctRaw > 100) {
+            message += "🚨 Over Budget\n"
+        }
+        else if (pctRaw > 80) {
+            message += "⚠ Near limit\n"
+        }
+
+        message += "\n"
+    }
+
+    await sendMessage(chatId, message)
+}
+
+function progressBar(pct) {
+
+    const total = 10
+    const filled = Math.round((pct / 100) * total)
+
+    return "█".repeat(filled) + "░".repeat(total - filled)
 
 }

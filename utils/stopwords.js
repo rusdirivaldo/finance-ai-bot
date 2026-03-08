@@ -17,7 +17,8 @@ const stopwords = [
   "pake",
   "beliin",
   "sewa",
-  "qris"
+  "qris",
+  "aja"
 ]
 
 export function removeStopwords(words) {

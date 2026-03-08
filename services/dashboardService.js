@@ -316,34 +316,132 @@ async function dailySpendingChart(chatId, data) {
 }
 
 export async function dashboardAnalytics(chatId) {
+    try {
+        await sendMessage(chatId, "📊 Generating dashboard...")
 
-    await sendMessage(chatId, "📊 Generating dashboard...")
+        const { data, error } = await supabase
+            .from("transactions")
+            .select("*")
+            .eq("chat_id", chatId)
 
-    const { data, error } = await supabase
-        .from("transactions")
-        .select("*")
-        .eq("chat_id", chatId)
+        if (error) throw error
 
-    if (error) {
-        console.log(error)
-        await sendMessage(chatId, "Database error")
+        if (!data || data.length === 0) {
+            await sendMessage(chatId, "No data yet")
+            return
+        }
+
+        await dashboardSummary(chatId, data)
+        await sendTopCategory(chatId, data)
+
+        await incomeExpenseChart(chatId, data)
+        await categoryChart(chatId, data)
+        await savingRateChart(chatId, data)
+        await dailySpendingChart(chatId, data)
+        const spent = data
+            .filter(t => t.type === "expense")
+            .reduce((sum, t) => sum + t.amount, 0)
+
+        const { data: budgets } = await supabase
+            .from("budgets")
+            .select("monthly_limit")
+            .eq("chat_id", chatId)
+
+        const budget = budgets
+            ? budgets.reduce((sum, b) => sum + b.monthly_limit, 0)
+            : 0
+
+        await budgetGauge(chatId, spent, budget)
+        await spendingDistribution(chatId, data)
+        await spendingInsight(chatId, data)
+        await sendMessage(chatId, "📊 Full Finance Dashboard")
+    } catch (err) {
+        console.error("DASHBOARD ERROR:", err)
+
+        await sendMessage(chatId,
+            "⚠ Gagal membuat dashboard")
+    }
+}
+
+async function budgetGauge(chatId, spent, budget) {
+
+    if (!budget || budget === 0) {
+        await sendMessage(chatId, "⚠ Budget belum di-set untuk bulan ini.")
         return
     }
 
-    if (!data || data.length === 0) {
-        await sendMessage(chatId, "No data yet")
-        return
+    const remaining = Math.max(budget - spent, 0)
+
+    const percent = Math.round((spent / budget) * 100)
+
+    await sendMessage(chatId,
+        `📊 Budget Usage
+
+Total Budget : ${rupiah(budget)}
+Spent        : ${rupiah(spent)}
+Remaining    : ${rupiah(remaining)}
+
+Usage        : ${percent}%`
+    )
+
+    const config = {
+        type: "doughnut",
+        data: {
+            labels: ["Spent", "Remaining"],
+            datasets: [{
+                data: [spent, remaining],
+                backgroundColor: ["#ff6384", "#36a2eb"]
+            }]
+        },
+        options: {
+            plugins: {
+                legend: {
+                    position: "bottom"
+                }
+            }
+        }
     }
 
-    await dashboardSummary(chatId, data)
-    await sendTopCategory(chatId, data)
+    await sendChart(chatId, config)
 
-    await incomeExpenseChart(chatId, data)
-    await categoryChart(chatId, data)
-    await savingRateChart(chatId, data)
-    await dailySpendingChart(chatId, data)
+}
 
-    await spendingInsight(chatId, data)
-    await sendMessage(chatId, "📊 Full Finance Dashboard")
+async function spendingDistribution(chatId,data){
+
+  const { data: categories } = await supabase
+    .from("categories")
+    .select("name,level")
+
+  let essential = 0
+  let lifestyle = 0
+  let luxury = 0
+
+  data.forEach(t => {
+
+    if(t.type !== "expense") return
+
+    const cat = categories.find(c => c.name === t.category)
+
+    if(!cat) return
+
+    if(cat.level === "primer") essential += t.amount
+
+    if(cat.level === "sekunder") lifestyle += t.amount
+
+    if(cat.level === "tersier") luxury += t.amount
+
+  })
+
+  const config = {
+    type:"pie",
+    data:{
+      labels:["Essential","Lifestyle","Luxury"],
+      datasets:[{
+        data:[essential,lifestyle,luxury]
+      }]
+    }
+  }
+
+  await sendChart(chatId,config)
 
 }

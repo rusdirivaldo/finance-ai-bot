@@ -6,7 +6,7 @@ export async function expenseDetail(chatId) {
 
     const { data, error } = await supabase
         .from("transactions")
-        .select("description,amount,date")
+        .select("id,description,amount,date")
         .eq("chat_id", chatId)
         .eq("type", "expense")
         .order("date", { ascending: false })
@@ -28,7 +28,8 @@ export async function expenseDetail(chatId) {
 
         const date = new Date(t.date).toLocaleDateString("id-ID")
 
-        text += `${t.description}
+        text += `#${t.id}
+${t.description}
 ${rupiah(t.amount)}
 📅 ${date}
 

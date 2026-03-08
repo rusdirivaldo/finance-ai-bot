@@ -29,3 +29,29 @@ export async function sendPhoto(chatId, photo) {
   })
 
 }
+
+export async function sendMainMenu(chatId){
+
+  await fetch(
+    `https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":"application/json"
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: "Selamat Datang Fellas :) \n\n📊 Finance Bot Menu\n\nPilih menu:",
+        reply_markup:{
+          keyboard:[
+            ["📊 Dashboard","📈 Report"],
+            ["💡 Insight","📋 Expense"],
+            ["💰 Top Expense","📊 Budgets Status"]
+          ],
+          resize_keyboard:true
+        }
+      })
+    }
+  )
+
+}
