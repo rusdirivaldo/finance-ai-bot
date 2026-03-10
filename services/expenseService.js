@@ -196,3 +196,64 @@ ${rupiah(t.amount)}
 
     await sendMessage(chatId, text)
 }
+
+export async function expenseByCategory(chatId, category) {
+
+  try {
+
+    const { data, error } = await supabase
+      .from("transactions")
+      .select("description,amount,date")
+      .eq("chat_id", chatId)
+      .eq("type", "expense")
+      .eq("category", category)
+      .order("date", { ascending: false })
+      .limit(30)
+
+    if (error) throw error
+
+    if (!data || data.length === 0) {
+
+      await sendMessage(chatId,
+        `Tidak ada transaksi untuk kategori "${category}"`)
+
+      return
+    }
+
+    let text = `📂 Expense Category: ${category}\n\n`
+
+    let total = 0
+
+    data.forEach(t => {
+
+      const date = new Date(t.date).toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric"
+      })
+
+      total += t.amount
+
+      text += `${t.description}
+${rupiah(t.amount)}
+📅 ${date}
+
+`
+    })
+
+    text += `━━━━━━━━━━
+Total : ${rupiah(total)}`
+
+    await sendMessage(chatId, text)
+
+  }
+  catch (err) {
+
+    console.error("CATEGORY EXPENSE ERROR:", err)
+
+    await sendMessage(chatId,
+      "⚠ Gagal mengambil transaksi kategori")
+
+  }
+
+}

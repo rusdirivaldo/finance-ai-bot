@@ -160,3 +160,81 @@ export async function monthlyReport(chatId, month) {
 Total Expense : ${rupiah(total)}`
     )
 }
+
+export async function categoryReport(chatId) {
+
+    try {
+
+        const now = new Date()
+
+        const month = now.toISOString().slice(0, 7)
+
+        const { data, error } = await supabase
+            .from("transactions")
+            .select("category,amount,date,type")
+            .eq("chat_id", chatId)
+            .eq("type", "expense")
+
+        if (error) throw error
+
+        if (!data || data.length === 0) {
+
+            await sendMessage(chatId, "Belum ada transaksi")
+            return
+
+        }
+
+        const filtered = data.filter(t => t.date.startsWith(month))
+
+        if (filtered.length === 0) {
+
+            await sendMessage(chatId, "Belum ada transaksi bulan ini")
+            return
+
+        }
+
+        const categoryMap = {}
+
+        let totalExpense = 0
+
+        for (const t of filtered) {
+
+            if (!categoryMap[t.category]) {
+                categoryMap[t.category] = 0
+            }
+
+            categoryMap[t.category] += t.amount
+            totalExpense += t.amount
+
+        }
+
+        const sorted = Object.entries(categoryMap)
+            .sort((a, b) => b[1] - a[1])
+
+        let message = `📊 Category Report (${month})\n\n`
+
+        for (const [category, amount] of sorted) {
+
+            const pct = Math.round((amount / totalExpense) * 100)
+
+            message += `${category}
+${rupiah(amount)} (${pct}%)
+
+`
+        }
+
+        message += `━━━━━━━━━━
+Total Expense
+${rupiah(totalExpense)}`
+
+        await sendMessage(chatId, message)
+
+    } catch (err) {
+
+        console.error("CATEGORY REPORT ERROR:", err)
+
+        await sendMessage(chatId, "⚠ Gagal membuat category report")
+
+    }
+
+}

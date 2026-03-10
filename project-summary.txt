@@ -1,0 +1,435 @@
+🧠 Project Summary
+AI Personal Finance Telegram Bot
+
+Project ini adalah Telegram Bot Personal Finance Assistant yang memungkinkan user mencatat transaksi keuangan menggunakan natural language, lalu bot akan:
+
+menyimpan transaksi
+
+mengkategorikan otomatis
+
+membuat laporan keuangan
+
+menganalisis kondisi finansial
+
+menampilkan dashboard analytics
+
+Bot di-deploy menggunakan serverless architecture.
+
+🏗 Tech Stack
+Backend
+Node.js
+Vercel Serverless Function
+Telegram Bot API
+Database
+Supabase (PostgreSQL)
+Chart Engine
+QuickChart API
+AI-like Logic
+keyword matching
+string similarity
+stopword filtering
+auto category learning
+📂 Project Structure
+
+Current project structure:
+
+finance-ai-bot
+│
+├── api
+│   └── bot.js
+│
+├── services
+│   ├── transactionService.js
+│   ├── reportService.js
+│   ├── dashboardService.js
+│   ├── insightService.js
+│   ├── expenseService.js
+│   ├── categoryService.js
+│   └── budgetService.js
+│
+├── utils
+│   ├── telegram.js
+│   ├── parser.js
+│   ├── formatter.js
+│   └── stopwords.js
+│
+├── supabase.js
+└── package.json
+🗄 Database Structure
+Table: transactions
+id
+chat_id
+date
+type            (income | expense)
+category
+description
+amount
+needs_category
+
+Purpose:
+
+store all financial transactions
+Table: categories
+id
+name
+keywords
+level
+
+Example:
+
+name	keywords	level
+food	makan,warteg	primer
+transport	bensin,tol	primer
+shopping	tokopedia,shopee	sekunder
+
+Level meaning:
+
+primer   → Essential spending
+sekunder → Lifestyle spending
+tersier  → Luxury spending
+Table: budgets
+id
+chat_id
+category
+monthly_limit
+month
+year
+
+Constraint:
+
+UNIQUE(chat_id, category, month, year)
+
+Purpose:
+
+prevent duplicate budgets
+✨ Core Features
+1️⃣ Natural Language Expense Input
+
+User can type:
+
+makan ramen 85k
+beli oli motor 65k
+ngopi starbucks 45k
+
+Bot automatically:
+
+parse amount
+detect type
+detect category
+insert transaction
+
+Amount parser:
+
+85k → 85000
+2jt → 2000000
+2️⃣ Auto Category Detection
+
+Algorithm:
+
+tokenize input
+remove stopwords
+keyword match
+string similarity
+
+Example:
+
+beli oli motor
+→ transport
+3️⃣ Stopword Filtering
+
+Example stopwords:
+
+beli
+bayar
+order
+ambil
+isi
+topup
+
+So:
+
+beli kopi starbucks
+→ keyword detected = kopi
+4️⃣ Auto Category Learning
+
+When category not detected:
+
+category = other
+needs_category = true
+
+Bot response:
+
+❓ Kategori belum dikenali
+
+User command:
+
+/setcategory transport
+
+Bot will:
+
+update category keywords
+update transaction
+5️⃣ Transaction Commands
+/expense
+/expense bulan ini
+/expense maret
+/search ramen
+
+Functions:
+
+expenseDetail()
+expenseDetailMonth()
+expenseDetailByMonthName()
+searchExpenseDetailbyDescription()
+6️⃣ Transaction Editing
+
+User can correct mistakes.
+
+Commands:
+
+/edit 102 90000
+/editdesc 102 makan ramen
+/delete 102
+/updatecategory 102 food
+
+Functions:
+
+editTransactionAmount()
+editTransactionDesc()
+deleteTransaction()
+updateTransactionCategory()
+7️⃣ Financial Reports
+
+Commands:
+
+/report
+/report today
+/report 2026-03
+/today
+/month
+
+Metrics:
+
+income
+expense
+balance
+saving rate
+top categories
+8️⃣ Dashboard Analytics
+
+Command:
+
+/dashboard
+
+Charts generated using:
+
+QuickChart
+
+Charts include:
+
+Income vs Expense trend
+Expense by category
+Daily spending
+Budget usage
+Spending distribution
+
+Functions:
+
+incomeExpenseChart()
+categoryChart()
+dailySpendingChart()
+budgetGauge()
+spendingDistribution()
+9️⃣ Financial Insight
+
+Command:
+
+/insight
+
+Metrics:
+
+saving rate
+essential spending
+lifestyle spending
+luxury spending
+
+Example output:
+
+Saving Rate : 32%
+
+Essential : 52%
+Lifestyle : 30%
+Luxury : 18%
+🔟 Budget System
+
+Command:
+
+/budget food 2000000
+
+Function:
+
+setBudget()
+
+Budget features:
+
+budget warning
+budget exceeded alert
+budget usage chart
+Budget Status
+
+Command:
+
+/budgetstatus
+
+Example output:
+
+food
+🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜ 52%
+1,040,000 / 2,000,000
+📊 Spending Distribution
+
+Calculated using:
+
+categories.level
+
+Mapping:
+
+primer   → Essential
+sekunder → Lifestyle
+tersier  → Luxury
+
+Chart:
+
+Essential
+Lifestyle
+Luxury
+📊 Financial Dashboard
+
+Command:
+
+/dashboard
+
+Bot sends:
+
+financial summary
+multiple charts
+budget usage
+📌 Telegram Menu
+
+Commands registered using:
+
+setMyCommands
+
+Examples:
+
+/menu
+/dashboard
+/report
+/expense
+/search
+/budget
+/budgetstatus
+/categorydetail
+/removekeyword
+/addkeyword
+🧠 AI-like Capabilities
+
+Bot includes logic for:
+
+auto categorization
+category learning
+financial insight
+spending anomaly detection
+budget alert
+🚀 Deployment Architecture
+
+Deployment:
+
+Vercel Serverless
+
+Webhook flow:
+
+Telegram
+↓
+Webhook
+↓
+Vercel API
+↓
+Supabase
+
+Benefits:
+
+no server needed
+auto scaling
+low cost
+📈 Current Bot Capabilities
+
+Bot currently supports:
+
+natural language expense tracking
+auto categorization
+category learning
+transaction editing
+budget tracking
+financial reports
+financial insights
+telegram dashboard charts
+multi-user support
+🎯 Next Planned Features
+
+Possible future upgrades:
+
+weekly financial report
+merchant detection
+expense anomaly detection
+financial health score
+category usage analytics
+budget recommendation AI
+⚠ Important Design Notes
+Category system simplified
+18 main categories
+
+Levels:
+
+primer
+sekunder
+tersier
+Budget constraint
+UNIQUE(chat_id, category, month, year)
+Dashboard logic
+transactions
++ categories
++ budgets
+🧾 Example User Workflow
+
+User input:
+
+makan ramen 85k
+
+Bot:
+
+Saved
+expense
+food
+85,000
+
+Later:
+
+/dashboard
+
+Bot returns:
+
+financial dashboard
+charts
+insight
+✅ Project Status
+
+Project is currently fully functional with:
+
+expense tracking
+budget tracking
+analytics dashboard
+financial insight
+telegram command interface
+
+Bot works as a Personal Finance Assistant inside Telegram.

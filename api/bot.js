@@ -5,7 +5,7 @@ import {
     editTransactionDesc,
     updateTransactionCategory
 } from "../services/transactionService.js"
-import { generateReport, todayReport, monthReport, monthlyReport } from "../services/reportService.js"
+import { generateReport, todayReport, monthReport, monthlyReport,categoryReport } from "../services/reportService.js"
 import { dashboardAnalytics } from "../services/dashboardService.js"
 import { financeInsight, topDetail } from "../services/insightService.js"
 
@@ -13,7 +13,8 @@ import {
     expenseDetail,
     expenseDetailMonth,
     expenseDetailByMonthName,
-    searchExpenseDetailbyDescription
+    searchExpenseDetailbyDescription,
+    expenseByCategory
 } from "../services/expenseService.js"
 
 import { learnCategory } from "../services/categoryService.js"
@@ -134,6 +135,24 @@ async function routeCommand(command, args, text, lower, chatId) {
             return true
         }
 
+
+        if (command === "/categorytx") {
+
+            const category = args[0]
+
+            if (!category) {
+
+                await sendMessage(chatId,
+                    "Gunakan:\n/categorytx food")
+
+                return true
+            }
+
+            await expenseByCategory(chatId, category)
+
+            return true
+        }
+
         if (command === "/removekeyword") {
 
             const category = args[0]
@@ -211,6 +230,13 @@ async function routeCommand(command, args, text, lower, chatId) {
             }
 
             await deleteTransaction(chatId, id)
+
+            return true
+        }
+
+        if (command === "/categoryreport") {
+
+            await categoryReport(chatId)
 
             return true
         }
